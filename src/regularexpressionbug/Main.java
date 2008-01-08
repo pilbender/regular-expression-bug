@@ -7,6 +7,9 @@
 
 package regularexpressionbug;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  *
  * @author scott
@@ -21,75 +24,109 @@ public class Main {
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
-		private String beginAirport = "^\\w{3,4} {3,4}airport";
-	private boolean isInAirport = false;
-	private String endAirport = "^\\w{3,4} {3,4}"
-	    
-	    
-	    Found a bug in the Java regular expression engine!  One of my regular 
-expressions was matching "airway"s which is bogus because there was no way 
-the regular expression could match that.
-
-Here's what I had it set to:
-"^\\w{3,4} {3,4}[^a][^i][^r][^p][^o][^r][^t]"
-
-And stuff like this was not getting filtered:
-A007   airway  CMQ MNL
-A015   airway  BANNE TDGNY HWTCC ICK SQM RADKY CGL HNS MAGNM DB YXQ DUVOT AES
-               DJN
-A016   airway  AP 23840 23839 WC
-A017   airway  CUN 27552 CQR PVQ
-
-So I ended up changing it to:
-"^\\w{3,4} {3,4}"
-
-I like the other version better because it was more precise but the engine was 
-obviously not working right because it wasn't matching on 4 letter "airway"s.  
-Basically the first expression above means any 3 or 4 letters or numbers 
-followed by 3 or 4 spaces and then the word "airport" cannot follow.  So it 
-was matching things like:
-AAA    weather LINCOLN,IL types: NO METAR UA
-AAF    navaid  APALACHICOLA   APALACHICOLA,FL              NDB
-       L/L: 2943N/08502W LRN/GPS: 29-43.40N/085-01.68W Elev: 18
-       fss: GNV(GAINESVILLE) artcc: JACKSONVILLE Notams: GNV
-       Freq: 349 Mag Var: 02W
-POE1   navaid  NORTH   FORT POLK,LA                        FAN MARKER
-       L/L: 3107N/09313W LRN/GPS: 31-06.66N/093-13.19W Elev: 0
-       fss: DRI(DE RIDDER) artcc: HOUSTON Notams: DRI
-       Freq:   Mag Var: 07E
-ARV    Notam(s) active for ARV
-AR3    airway  ZQA BARTS ANGLL NUCAR SCOBY 21337 CARPS PERIE 14865 OLDEY PANAL
-               14857 21333 CLB
-AR4    airway  CH METTA 14864 14858 MILOE OLDEY
-AR5    airway  JA JAWSS BAHAA TORRY 14862 14863 SNABS OZENA OHLAA CARPS TROUT
-AR6    airway  ORL 25346 MALET APOLO HIBAC HALSS HOBEE
-AR8    airway  ECG OHPEA 00060 BACUS
-AR9    airway  ORF BAATT NAGGI FUMES MEYRA ATLIC KENSI 00061 OUTES ETMEY DELPP
-               CUMBY CROAK ZIBUT
-
-
-But not matching things like:
-A015   airway  BANNE TDGNY HWTCC ICK SQM RADKY CGL HNS MAGNM DB YXQ DUVOT AES
-               DJN
-A016   airway  AP 23840 23839 WC
-A017   airway  CUN 27552 CQR PVQ
-M450   airway  KARLL 10031 COALL
-M451   airway  ARBEZ 14472 JESRU
-M452   airway  HARVZ TAYTA
-M765   airway  OLBIE 28948 ROR KEONE
-
-
-I may see if there is a bug fix version that's been released and if not report 
-it to Sun Microsystems.  What a pain tracking that one down!
-
-I'm attaching another filtered file.  Throw the other one out.  Sorry for the 
-mistake.  Hopefully I won't catch any others.  This file size is slightly 
-smaller, 8,339,393 bytes which seems to match what I saw compared to the 
-previous file at 8,397,820 bytes.  
-
-It was weird because not all airways got through.  Only 4 letter ones.  3 
-letter ones properly matched and were filtered.  Strange.  I can see why this 
-one got through QA.  It's very subtle.
+		String working_regex = "^\\w{3,4} {3,4}airport";
+		String simplified_regex = "^\\w{3,4}\\W{3,4}";
+		String bug_regex = "^\\w{3,4}\\W{3,4}[^a][^i][^r][^p][^o][^r][^t]";
+		
+		// Stuff like this is not getting filtered:
+		String broken1 = "A007   airway  CMQ MNL";
+		String broken2 = "A015   airway  BANNE TDGNY HWTCC ICK SQM RADKY CGL HNS MAGNM DB YXQ DUVOT AES";
+		String broken3 = "A016   airway  AP 23840 23839 WC";
+		String broken4 = "A017   airway  CUN 27552 CQR PVQ";
+		String broken5 = "M450   airway  KARLL 10031 COALL";
+		String broken6 = "M451   airway  ARBEZ 14472 JESRU";
+		String broken7 = "M452   airway  HARVZ TAYTA";
+		String broken8 = "M765   airway  OLBIE 28948 ROR KEONE";
+		
+		// Properly filtered
+		String working1 = "AAA    weather LINCOLN,IL types: NO METAR UA";
+		String working2 = "AAF    navaid  APALACHICOLA   APALACHICOLA,FL              NDB";
+		String working3 = "POE1   navaid  NORTH   FORT POLK,LA                        FAN MARKER";
+		String working4 = "ARV    Notam(s) active for ARV";
+		String working5 = "AR3    airway  ZQA BARTS ANGLL NUCAR SCOBY 21337 CARPS PERIE 14865 OLDEY PANAL";
+		String working6 = "AR4    airway  CH METTA 14864 14858 MILOE OLDEY";
+		String working7 = "AR5    airway  JA JAWSS BAHAA TORRY 14862 14863 SNABS OZENA OHLAA CARPS TROUT";
+		String working8 = "AR6    airway  ORL 25346 MALET APOLO HIBAC HALSS HOBEE";
+		String working9 = "AR8    airway  ECG OHPEA 00060 BACUS";
+		String working0 = "AR9    airway  ORF BAATT NAGGI FUMES MEYRA ATLIC KENSI 00061 OUTES ETMEY DELPP";
+		
+		Pattern bug_regex_pattern = Pattern.compile(bug_regex);
+		
+		Matcher bug_regex_matcher;
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(broken1);
+		boolean broken1_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(broken2);
+		boolean broken2_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(broken3);
+		boolean broken3_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(broken4);
+		boolean broken4_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(broken5);
+		boolean broken5_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(broken6);
+		boolean broken6_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(broken7);
+		boolean broken7_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(broken8);
+		boolean broken8_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working1);
+		boolean working1_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working2);
+		boolean working2_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working3);
+		boolean working3_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working4);
+		boolean working4_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working5);
+		boolean working5_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working6);
+		boolean working6_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working7);
+		boolean working7_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working8);
+		boolean working8_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working9);
+		boolean working9_flag = bug_regex_matcher.lookingAt();
+		
+		bug_regex_matcher = bug_regex_pattern.matcher(working0);
+		boolean working0_flag = bug_regex_matcher.lookingAt();
+		
+		System.out.println(broken1_flag + ": " + broken1);
+		System.out.println(broken2_flag + ": " + broken2);
+		System.out.println(broken3_flag + ": " + broken3);
+		System.out.println(broken4_flag + ": " + broken4);
+		System.out.println(broken5_flag + ": " + broken5);
+		System.out.println(broken6_flag + ": " + broken6);
+		System.out.println(broken7_flag + ": " + broken7);
+		System.out.println(broken8_flag + ": " + broken8);
+		
+		System.out.println(working1_flag + ": " + working1);
+		System.out.println(working2_flag + ": " + working2);
+		System.out.println(working3_flag + ": " + working3);
+		System.out.println(working4_flag + ": " + working4);
+		System.out.println(working5_flag + ": " + working5);
+		System.out.println(working6_flag + ": " + working6);
+		System.out.println(working7_flag + ": " + working7);
+		System.out.println(working8_flag + ": " + working8);
+		System.out.println(working9_flag + ": " + working9);
+		System.out.println(working0_flag + ": " + working0);
 	}
 	
 }
