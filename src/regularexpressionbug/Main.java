@@ -108,6 +108,10 @@ public class Main {
 		bug_regex_matcher = bug_regex_pattern.matcher(working0);
 		boolean working0_flag = bug_regex_matcher.lookingAt();
 		
+		System.out.println("Here's the regular expressionn:");
+		System.out.println(bug_regex);
+		System.out.println("All output should indicate \"true\"");
+		System.out.println("False ones are broken");
 		System.out.println(broken1_flag + ": " + broken1);
 		System.out.println(broken2_flag + ": " + broken2);
 		System.out.println(broken3_flag + ": " + broken3);
